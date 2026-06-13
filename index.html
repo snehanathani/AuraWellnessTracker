@@ -6,6 +6,7 @@
   <title>Aura - Accessible AI Mental Wellness Tracker</title>
   <meta name="description" content="A secure, highly accessible, and lightweight mental wellness tracker with dynamic stress trigger logging, burnout prediction, and an adaptive breathing coach.">
   <link rel="stylesheet" href="src/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -290,12 +291,52 @@
             <p class="label-desc" style="margin-top: 0.25rem;">Generative model for the companion chatbot.</p>
           </div>
 
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="supabase-url-input">Supabase Project URL (Optional)</label>
+            <input type="text" id="supabase-url-input" placeholder="https://your-project.supabase.co" autocomplete="off">
+            <p class="label-desc" style="margin-top: 0.25rem;">Enables signup/login authentication screen.</p>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="supabase-key-input">Supabase Anon API Key (Optional)</label>
+            <input type="password" id="supabase-key-input" placeholder="eyJhbGciOiJIUzI1Ni..." autocomplete="off">
+            <p class="label-desc" style="margin-top: 0.25rem;">Connects users dynamically to a cloud database logs table.</p>
+          </div>
+
           <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
             <button type="button" id="btn-clear-settings" class="btn" style="color: var(--accent-rose); border-color: rgba(244,63,94,0.3);">Clear Keys</button>
             <button type="submit" class="btn btn-primary">Save Settings</button>
           </div>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- Authentication Overlay (Hidden by default, active if Supabase configurations are present) -->
+  <div id="auth-overlay" class="modal-overlay" style="z-index: 2000; display: none;">
+    <div class="modal-content" style="max-width: 420px; text-align: center;">
+      <div class="logo" style="justify-content: center; margin-bottom: 0.5rem;">
+        <span>✦</span> Aura Portal
+      </div>
+      <p class="label-desc" style="margin-bottom: 1.5rem;">Secure Cloud Sign-in. Create an account or log in to sync your wellness dashboard.</p>
+      
+      <form id="auth-form" novalidate style="display: flex; flex-direction: column; gap: 1.25rem; text-align: left;">
+        <div class="form-group">
+          <label for="auth-email">Email Address</label>
+          <input type="email" id="auth-email" placeholder="student@university.edu" required>
+        </div>
+        <div class="form-group">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" required>
+        </div>
+        
+        <div id="auth-alerts" class="alert-box" style="margin-top: 0.5rem; display: none;" role="alert" aria-live="polite"></div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button type="submit" id="btn-auth-login" class="btn btn-primary" style="flex: 1;">Log In</button>
+          <button type="button" id="btn-auth-signup" class="btn" style="flex: 1;">Sign Up</button>
+        </div>
+      </form>
     </div>
   </div>
 

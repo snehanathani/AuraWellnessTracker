@@ -11,6 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let openRouterKey = localStorage.getItem('aura_openrouter_api_key') || '';
   let openRouterModel = localStorage.getItem('aura_openrouter_model') || 'google/gemini-2.5-flash';
   let conversationHistory = [];
+  let supabaseUrl = localStorage.getItem('aura_supabase_url') || '';
+  let supabaseKey = localStorage.getItem('aura_supabase_key') || '';
+  let supabaseClient = null;
+  let currentUser = null;
   
   // Breathing coach states
   let breathingInterval = null;
@@ -82,6 +86,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const breathTimer = document.getElementById('breath-timer');
   const btnBreathControl = document.getElementById('btn-breath-control');
 
+  // DOM Elements - Supabase & Authentication
+  const supabaseUrlInput = document.getElementById('supabase-url-input');
+  const supabaseKeyInput = document.getElementById('supabase-key-input');
+  const authOverlay = document.getElementById('auth-overlay');
+  const authForm = document.getElementById('auth-form');
+  const authEmail = document.getElementById('auth-email');
+  const authPassword = document.getElementById('auth-password');
+  const btnAuthLogin = document.getElementById('btn-auth-login');
+  const btnAuthSignup = document.getElementById('btn-auth-signup');
+  const authAlerts = document.getElementById('auth-alerts');
+
   // Load existing logs from local storage on startup
   try {
     const savedLogs = localStorage.getItem('aura_wellness_logs');
@@ -102,6 +117,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (openRouterModel) {
     openRouterModelSelect.value = openRouterModel;
+  }
+  if (supabaseUrl) {
+    supabaseUrlInput.value = supabaseUrl;
+  }
+  if (supabaseKey) {
+    supabaseKeyInput.value = supabaseKey;
+  }
+
+  // Initialize Supabase Client if credentials are provided
+  if (supabaseUrl && supabaseKey) {
+    try {
+      if (typeof supabase !== 'undefined') {
+        supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+        setupSupabaseAuth();
+      } else {
+        console.error("Supabase script was not loaded from CDN.");
+        authOverlay.style.display = 'none';
+      }
+    } catch (initErr) {
+      console.error("Supabase initialization failed:", initErr);
+      authOverlay.style.display = 'none';
+    }
+  } else {
+    authOverlay.style.display = 'none';
   }
 
   // Initialize display
@@ -170,17 +209,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanKey = apiKeyInput.value.trim();
     const cleanORKey = openRouterKeyInput.value.trim();
     const cleanORModel = openRouterModelSelect.value;
+    const cleanSubURL = supabaseUrlInput.value.trim();
+    const cleanSubKey = supabaseKeyInput.value.trim();
 
     localStorage.setItem('aura_api_key', cleanKey);
     localStorage.setItem('aura_openrouter_api_key', cleanORKey);
     localStorage.setItem('aura_openrouter_model', cleanORModel);
+    localStorage.setItem('aura_supabase_url', cleanSubURL);
+    localStorage.setItem('aura_supabase_key', cleanSubKey);
 
     apiKey = cleanKey;
     openRouterKey = cleanORKey;
     openRouterModel = cleanORModel;
+    supabaseUrl = cleanSubURL;
+    supabaseKey = cleanSubKey;
 
     closeSettings();
     alert('Settings saved successfully!');
+    window.location.reload(); // Reload to re-initialize cloud auth state
   });
 
   // Clear API Keys
@@ -188,15 +234,22 @@ document.addEventListener('DOMContentLoaded', () => {
     apiKeyInput.value = '';
     openRouterKeyInput.value = '';
     openRouterModelSelect.value = 'google/gemini-2.5-flash';
+    supabaseUrlInput.value = '';
+    supabaseKeyInput.value = '';
 
     localStorage.removeItem('aura_api_key');
     localStorage.removeItem('aura_openrouter_api_key');
     localStorage.removeItem('aura_openrouter_model');
+    localStorage.removeItem('aura_supabase_url');
+    localStorage.removeItem('aura_supabase_key');
 
     apiKey = '';
     openRouterKey = '';
     openRouterModel = 'google/gemini-2.5-flash';
+    supabaseUrl = '';
+    supabaseKey = '';
     alert('API keys cleared.');
+    window.location.reload(); // Reload to clear cloud auth state
   });
 
   // --- Sample Journal Autofill ---
@@ -411,6 +464,26 @@ document.addEventListener('DOMContentLoaded', () => {
         copingStrategies,
         companionResponse: companionResponseText
       };
+
+      if (supabaseClient && currentUser) {
+        newEntry.user_id = currentUser.id;
+        try {
+          // Remove old logs for today from database (to avoid duplicates)
+          await supabaseClient
+            .from('wellness_logs')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('date', newEntry.date);
+
+          const { error } = await supabaseClient
+            .from('wellness_logs')
+            .insert([newEntry]);
+          
+          if (error) throw error;
+        } catch (dbErr) {
+          console.warn("Failed syncing log to Supabase Cloud Database:", dbErr);
+        }
+      }
 
       // Prevent duplicate logs for the same day in our simple demo
       logsState = logsState.filter(item => item.date !== newEntry.date);
@@ -1070,5 +1143,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     executeNextPhase();
+  }
+
+  // --- Supabase Cloud Auth Methods ---
+  function setupSupabaseAuth() {
+    if (!supabaseClient) return;
+    
+    // Check initial session
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      handleUserSession(session);
+    }).catch(err => {
+      console.warn("Supabase session fetching error:", err);
+    });
+
+    // Listen for session changes
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      handleUserSession(session);
+    });
+
+    // Login Submission
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authAlerts.style.display = 'none';
+      authAlerts.textContent = '';
+
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } catch (err) {
+        displayAuthError(err.message || "Login failed.");
+      }
+    });
+
+    // Signup Click
+    btnAuthSignup.addEventListener('click', async () => {
+      authAlerts.style.display = 'none';
+      authAlerts.textContent = '';
+
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+
+      if (!email || !password) {
+        displayAuthError("Email and Password are required to sign up.");
+        return;
+      }
+
+      try {
+        const { error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) throw error;
+        alert("Sign-up request received! If email confirmation is enabled, check your inbox; otherwise you can log in immediately.");
+      } catch (err) {
+        displayAuthError(err.message || "Signup failed.");
+      }
+    });
+  }
+
+  function handleUserSession(session) {
+    if (session && session.user) {
+      currentUser = session.user;
+      authOverlay.style.display = 'none';
+      loadCloudLogs();
+    } else {
+      currentUser = null;
+      authOverlay.style.display = 'flex';
+      logsState = [];
+      updateDashboardAndReportUI();
+    }
+  }
+
+  async function loadCloudLogs() {
+    if (!supabaseClient || !currentUser) return;
+    try {
+      const { data, error } = await supabaseClient
+        .from('wellness_logs')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      if (data) {
+        logsState = data;
+        updateDashboardAndReportUI();
+      }
+    } catch (err) {
+      console.warn("Could not load logs from Supabase Cloud Database:", err);
+    }
+  }
+
+  function displayAuthError(msg) {
+    authAlerts.textContent = msg;
+    authAlerts.style.display = 'block';
   }
 });
