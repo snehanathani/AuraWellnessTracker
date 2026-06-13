@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura - Accessible AI Mental Wellness Tracker</title>
+  <meta name="description" content="A secure, highly accessible, and lightweight mental wellness tracker with dynamic stress trigger logging, burnout prediction, and an adaptive breathing coach.">
+  <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+
+  <!-- Print Only Header for physical or PDF archiving of reports -->
+  <div class="print-only-header" aria-hidden="true">
+    <h1>Aura Wellness Report</h1>
+    <p>Generated on <span id="print-date"></span> | Confidential Personal Log</p>
+  </div>
+
+  <!-- Header Banner Section -->
+  <header>
+    <div class="logo">
+      <span>✦</span> Aura Wellness
+    </div>
+    <nav aria-label="Main Navigation">
+      <button id="btn-quick-demo" class="btn btn-accent" title="Pre-populate mock data and run the tracker dashboard">
+        ⚡ Quick Start Demo
+      </button>
+      <button id="btn-open-settings" class="btn" aria-haspopup="dialog" aria-expanded="false">
+        ⚙ Settings
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main id="main-content">
+    
+    <!-- Left Column: Input Forms and Interactive Mindfulness -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+      
+      <!-- Section: Daily Logger -->
+      <section aria-labelledby="logger-heading">
+        <h2 id="logger-heading">Daily Wellness Log</h2>
+        <p class="label-desc">Record your parameters and write a journal entry to discover stress triggers and check burnout risk.</p>
+        
+        <form id="wellness-form" novalidate>
+          
+          <!-- Mood Input -->
+          <div class="form-group">
+            <label for="mood-slider">Mood Rating</label>
+            <span class="label-desc">Rate your overall mood today from 1 (very low) to 10 (excellent)</span>
+            <div class="slider-container">
+              <input type="range" id="mood-slider" min="1" max="10" value="5" step="1" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5">
+              <span id="mood-value" class="slider-value" aria-hidden="true">5</span>
+            </div>
+          </div>
+
+          <!-- Sleep Quality Input -->
+          <div class="form-group">
+            <label for="sleep-slider">Sleep Quality</label>
+            <span class="label-desc">Rate your sleep quality from 1 (disrupted/restless) to 10 (fully restful)</span>
+            <div class="slider-container">
+              <input type="range" id="sleep-slider" min="1" max="10" value="5" step="1" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5">
+              <span id="sleep-value" class="slider-value" aria-hidden="true">5</span>
+            </div>
+          </div>
+
+          <!-- Stress Level Input -->
+          <div class="form-group">
+            <label for="stress-slider">Current Stress Level</label>
+            <span class="label-desc">Rate your stress levels from 1 (completely calm) to 10 (extreme panic)</span>
+            <div class="slider-container">
+              <input type="range" id="stress-slider" min="1" max="10" value="5" step="1" aria-valuemin="1" aria-valuemax="10" aria-valuenow="5">
+              <span id="stress-value" class="slider-value" aria-hidden="true">5</span>
+            </div>
+          </div>
+
+          <!-- Daily Journal Textarea -->
+          <div class="form-group">
+            <label for="journal-input">Daily Journal Entry</label>
+            <span class="label-desc">Write down your thoughts, events, or challenges. Min. 10 characters for trigger detection.</span>
+            <textarea id="journal-input" rows="6" placeholder="Explain how your day went, what you worked on, or what is on your mind..." required></textarea>
+          </div>
+
+          <!-- Validation Error Panel -->
+          <div id="validation-alerts" class="alert-box" role="alert" aria-live="polite" aria-atomic="true">
+            <!-- Dynamic validation errors appended here safely -->
+          </div>
+
+          <!-- Submit and Autofill actions -->
+          <div class="actions" style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button type="submit" id="btn-submit" class="btn btn-primary" style="flex: 1;">
+              Analyze & Save Entry
+            </button>
+            <button type="button" id="btn-autofill" class="btn" title="Autofill standard journaling data">
+              ✏ Autofill Sample
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- Section: Interactive Mindfulness Coach -->
+      <section aria-labelledby="mindfulness-heading">
+        <h2 id="mindfulness-heading">Mindfulness Coach</h2>
+        <p class="label-desc">Calm your amygdala with breathing exercises tailored to your current wellness score.</p>
+        
+        <div class="form-group">
+          <label for="exercise-select">Select Breathing Routine</label>
+          <select id="exercise-select">
+            <option value="adaptive">Auto-select (Adaptive)</option>
+            <option value="box">Box Breathing (4-4-4-4)</option>
+            <option value="relax">4-7-8 Relax Breathing</option>
+            <option value="equal">Equal Breathing (5-5)</option>
+          </select>
+        </div>
+
+        <div class="breathing-coach-box">
+          <div class="breathing-container" aria-hidden="true">
+            <div id="breathing-circle" class="breathing-circle"></div>
+          </div>
+          <div style="text-align: center;">
+            <p id="breath-instruction" class="breath-instruction" aria-live="polite">Ready to begin</p>
+            <p id="breath-timer" class="breath-sub">Select start to activate breathing coach</p>
+          </div>
+          <button id="btn-breath-control" class="btn btn-accent" type="button">
+            Start Breathing Session
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Column: Results Dashboard, Weekly Report, and AI Companion -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+      
+      <!-- Section: Companion & Real-time AI Analysis -->
+      <section aria-labelledby="analysis-heading">
+        <h2 id="analysis-heading">Companion & AI Analysis</h2>
+        
+        <!-- Empty State -->
+        <div id="dashboard-empty" class="empty-state">
+          <p>No analysis generated yet. Complete today's wellness log or use the "Quick Start Demo" to run the metrics.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="dashboard-loading" class="loading-state" style="display: none;" aria-live="polite">
+          <div class="spinner"></div>
+          <p>Analyzing emotional patterns and predicting burnout metrics...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="dashboard-error" class="error-state" style="display: none;" role="alert" aria-live="polite">
+          <p id="error-message-text">Unable to run analysis. Check your settings or offline fallback.</p>
+          <button id="btn-retry-analysis" class="btn">Retry Analysis</button>
+        </div>
+
+        <!-- Active State Results -->
+        <div id="dashboard-active" style="display: none; display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Metrics Widgets -->
+          <div class="dashboard-grid">
+            <div class="metric-card">
+              <span class="metric-label">Wellness Score</span>
+              <span id="metric-wellness" class="metric-value">--</span>
+              <span id="badge-wellness" class="metric-status status-good">Good</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Burnout Index</span>
+              <span id="metric-burnout" class="metric-value">--</span>
+              <span id="badge-burnout" class="metric-status status-warning">Moderate</span>
+            </div>
+          </div>
+
+          <!-- Emotional Pattern & Triggers -->
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Emotional Pattern</h3>
+            <p id="analysis-pattern" style="font-weight: 500; font-size: 1.1rem; color: var(--accent-violet);">Neutral</p>
+          </div>
+
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Stress Triggers Detected</h3>
+            <div id="triggers-list" class="tags-list">
+              <!-- Dynamically populated tags -->
+            </div>
+          </div>
+
+          <!-- Coping Strategies -->
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Personalized Coping Strategies</h3>
+            <div id="strategies-list" class="strategies-list">
+              <!-- Dynamic lists -->
+            </div>
+          </div>
+
+          <!-- AI Companion Experience -->
+          <div>
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">Your Companion</h3>
+            <div id="companion-chat" class="companion-box">
+              <div id="chat-history" class="chat-history">
+                <!-- Chat Bubbles -->
+              </div>
+              <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Type a message to Aura..." aria-label="Type message to wellness companion">
+                <button id="btn-chat-send" class="btn btn-primary">Send</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Section: Weekly Wellness Reports -->
+      <section class="weekly-report" aria-labelledby="reports-heading">
+        <h2 id="reports-heading">Weekly Wellness Report</h2>
+        <p class="label-desc">Visualizes historical patterns, averages, and long-term mood levels.</p>
+        
+        <div id="report-empty" class="empty-state">
+          <p>Weekly metrics and trends are calculated when you log multiple consecutive days.</p>
+        </div>
+
+        <div id="report-active" style="display: none; display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Chart Placeholder/Dynamic SVG -->
+          <div id="report-chart-container" style="background: var(--bg-secondary); border-radius: 8px; padding: 1rem; height: 180px; width: 100%; overflow: hidden;">
+            <!-- SVG chart inserted here dynamically to avoid external files and prevent reflows -->
+          </div>
+
+          <!-- Averages summary -->
+          <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <div style="text-align: center; border-right: 1px solid var(--border-color);">
+              <p class="label-desc">Avg Mood</p>
+              <p id="avg-mood" style="font-size: 1.25rem; font-weight: 600;">--</p>
+            </div>
+            <div style="text-align: center; border-right: 1px solid var(--border-color);">
+              <p class="label-desc">Avg Sleep</p>
+              <p id="avg-sleep" style="font-size: 1.25rem; font-weight: 600;">--</p>
+            </div>
+            <div style="text-align: center;">
+              <p class="label-desc">Avg Burnout</p>
+              <p id="avg-burnout" style="font-size: 1.25rem; font-weight: 600;">--</p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end;" class="actions">
+            <button id="btn-print-report" class="btn">
+              🖨 Print Weekly Report
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Aura Wellness. Highly Secure, Accessible (WCAG 2.1 AA Compliant), Zero-Trust Design.</p>
+  </footer>
+
+  <!-- Drawer/Modal Settings panel -->
+  <div id="settings-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="settings-title" style="border-left: none; padding-left: 0; margin-bottom: 0;">System Settings</h2>
+        <button id="btn-close-settings" class="close-btn" aria-label="Close settings dialog">&times;</button>
+      </div>
+      <div>
+        <p class="label-desc" style="margin-bottom: 1rem;">Configure API settings. Credentials are stored securely in local browser storage and never sent to a third-party server directly.</p>
+        
+        <form id="settings-form" novalidate>
+          <div class="form-group">
+            <label for="api-key-input">Gemini API Key (Optional)</label>
+            <input type="password" id="api-key-input" placeholder="AIzaSy..." autocomplete="off">
+            <p class="label-desc" style="margin-top: 0.25rem;">Direct Google Gemini API Key.</p>
+          </div>
+          
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="openrouter-key-input">OpenRouter API Key (Optional)</label>
+            <input type="password" id="openrouter-key-input" placeholder="sk-or-v1-..." autocomplete="off">
+            <p class="label-desc" style="margin-top: 0.25rem;">Enables state-of-the-art interactive companion responses.</p>
+          </div>
+
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="openrouter-model-select">OpenRouter Model</label>
+            <select id="openrouter-model-select">
+              <option value="google/gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
+              <option value="meta-llama/llama-3-8b-instruct:free">Llama 3 8B Instruct (Free)</option>
+              <option value="mistralai/mistral-7b-instruct:free">Mistral 7B Instruct (Free)</option>
+              <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+            </select>
+            <p class="label-desc" style="margin-top: 0.25rem;">Generative model for the companion chatbot.</p>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" id="btn-clear-settings" class="btn" style="color: var(--accent-rose); border-color: rgba(244,63,94,0.3);">Clear Keys</button>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/js/core.js"></script>
+  <script src="src/js/app.js"></script>
+</body>
+</html>

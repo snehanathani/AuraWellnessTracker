@@ -1,0 +1,20 @@
+{
+  "name": "mental-wellness-tracker",
+  "version": "1.0.0",
+  "description": "Production-grade Accessible and Secure Mental Wellness Tracker",
+  "main": "src/js/app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "wellness",
+    "tracker",
+    "accessibility",
+    "jest"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^29.5.0"
+  }
+}
