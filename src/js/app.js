@@ -564,9 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openRouterKey}`,
-          'HTTP-Referer': 'http://localhost:3000', // Referer header for OpenRouter compliance
-          'X-Title': 'Aura Wellness Tracker'
+          'Authorization': `Bearer ${openRouterKey}`
         },
         body: JSON.stringify({
           model: openRouterModel,
